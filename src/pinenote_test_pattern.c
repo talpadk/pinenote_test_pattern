@@ -63,6 +63,7 @@ void initSDL(void) {
 
 static void checkInput(void) {
   SDL_Event event;
+  uint8_t update = 0;
   while (SDL_PollEvent(&event)) {
     switch (event.type) {
     case SDL_QUIT:
@@ -71,19 +72,27 @@ static void checkInput(void) {
     case SDL_FINGERDOWN:{
 	float x = event.tfinger.x;
 	float y = event.tfinger.y;
-	printf("finger down @ %f,%f\n", x,y);
-	drawDirection_ ^= 1;
-	needsARedraw_ = 1;
+	//	printf("finger down @ %f,%f\n", x,y);
+	update = 1;
+        if (x < 0.1 && y < 0.1) {
+          keepRunning_ = 0;
+        }
       }
       break;
       case SDL_MOUSEBUTTONDOWN: {
 	Sint32 x = event.button.x;
 	Sint32 y = event.button.y;
-	printf("mouse down @ %d,%d\n", x,y);
-	drawDirection_ ^= 1;
-	needsARedraw_ = 1;
+	//printf("mouse down @ %d,%d\n", x,y);
+	update = 1;
+	if (x < 100 && y < 100) {
+          keepRunning_ = 0;
+        }
       }
     }
+  }
+  if (update) {
+    drawDirection_ ^= 1;
+    needsARedraw_ = 1;
   }
 }
 
@@ -110,9 +119,10 @@ static void drawScreen(void) {
         }
 
         SDL_BlitSurface(colours_[colour], &sourceRect, windowSurface, &destinationRect);
+	SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
     }
   }
-  SDL_UpdateWindowSurface(window_);
+  //SDL_UpdateWindowSurface(window_);
   needsARedraw_ = 0;
 }
 
