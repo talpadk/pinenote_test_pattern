@@ -1,5 +1,6 @@
 * About
 A test pattern generator based on https://raw.githubusercontent.com/PNDeb/pinenote-debian-image/dev/overlays/root/rotating_cgradient_by_puck.html
+
 But rewritten using libSDL2 to allow for more control of the rendering
 
 * Requirements
@@ -9,10 +10,14 @@ But rewritten using libSDL2 to allow for more control of the rendering
 * Building and running
 
 Clone the repository
+
 cd into it.
 
 Just build it (outputs to build/ that it creates):
+
 ~./buildpp.pl pinenote_test_pattern~
 
-Build and test it by running it:
+
+** Build and test it by running it:
+
 ~./buildpp.pl pinenote_test_pattern --test ""~
