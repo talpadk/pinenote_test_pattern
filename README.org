@@ -15,9 +15,12 @@ cd into it.
 
 Just build it (outputs to build/ that it creates):
 
-~./buildpp.pl pinenote_test_pattern~
+#+begin_src sh
+  ./buildpp.pl pinenote_test_pattern
+#+end_src
 
+Build and test it by running it:
 
-** Build and test it by running it:
-
-~./buildpp.pl pinenote_test_pattern --test ""~
+#+begin_src sh
+  ./buildpp.pl pinenote_test_pattern --test ""
+#+end_src
