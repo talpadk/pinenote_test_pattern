@@ -119,10 +119,15 @@ static void drawScreen(void) {
         }
 
         SDL_BlitSurface(colours_[colour], &sourceRect, windowSurface, &destinationRect);
-	SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+	//SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
     }
   }
-  //SDL_UpdateWindowSurface(window_);
+  destinationRect.x = 0;
+  destinationRect.y = 0;
+  destinationRect.w = 16*rectWidth_;
+  destinationRect.h = 16*rectHeight_;
+
+  SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
   needsARedraw_ = 0;
 }
 
