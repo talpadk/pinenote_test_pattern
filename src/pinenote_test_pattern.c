@@ -1,6 +1,6 @@
 //#exe
-//#cflags -D_REENTRANT
-//#cflags -I/usr/include/SDL2
+//#global_cflags -D_REENTRANT
+//#global_cflags -I/usr/include/SDL2
 //#ldflags -lSDL2
 
 #include <SDL.h>
@@ -41,13 +41,13 @@ void initSDL(void) {
   }
 
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-
-  renderer_ = SDL_CreateRenderer(window_, -1, rendererFlags);
+  /*renderer_ = SDL_CreateRenderer(window_, -1, rendererFlags);
+  
   
   if (renderer_ == 0) {
     printf("Failed to create renderer: %s\n", SDL_GetError());
     exit(1);
-  }
+    }*/
 
   SDL_Rect fillRect;
   fillRect.x = 0;
