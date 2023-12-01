@@ -17,10 +17,14 @@ static uint8_t keepRunning_ = 1;
 static uint8_t needsARedraw_ = 1;
 static uint8_t drawDirection_ = 0;
 
+static uint8_t useAcceleration_ = 1;
+static uint8_t useGlobalRefresh_ = 0;
+
 static int rectWidth_ = 42;
 static int rectHeight_ = 42;
 
 SDL_Surface *colours_[16];
+SDL_Texture *acceleratedColour_[16];
 
 void initSDL(void) {
   int rendererFlags, windowFlags;
@@ -41,13 +45,15 @@ void initSDL(void) {
   }
 
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-  /*renderer_ = SDL_CreateRenderer(window_, -1, rendererFlags);
-  
-  
-  if (renderer_ == 0) {
-    printf("Failed to create renderer: %s\n", SDL_GetError());
-    exit(1);
-    }*/
+
+  if (useAcceleration_){
+    renderer_ = SDL_CreateRenderer(window_, -1, rendererFlags);
+
+    if (renderer_ == 0) {
+      printf("Failed to create renderer: %s\n", SDL_GetError());
+      exit(1);
+    }
+  }
 
   SDL_Rect fillRect;
   fillRect.x = 0;
@@ -58,6 +64,9 @@ void initSDL(void) {
     colours_[i] = SDL_CreateRGBSurface(0, rectWidth_, rectHeight_, 24, 0, 0, 0, 0);
     Uint32 colour = (i << (16 + 4)) | (i << (8 + 4)) | (i << (0 + 4));
     SDL_FillRect(colours_[i], &fillRect, colour);
+    if (useAcceleration_) {
+      acceleratedColour_[i] = SDL_CreateTextureFromSurface(renderer_, colours_[i]);
+    }
   }
 }
 
@@ -108,26 +117,43 @@ static void drawScreen(void) {
   SDL_Surface *windowSurface = SDL_GetWindowSurface(window_);
   for (int x=0; x<16; x++){
     for (int y = 0; y < 16; y++) {
-        destinationRect.x = x * rectWidth_;
-        destinationRect.y = y * rectHeight_;
-        int colour;
-        if (drawDirection_) {
-          colour = y;
-        }
+      destinationRect.x = x * rectWidth_;
+      destinationRect.y = y * rectHeight_;
+      int colour;
+      if (drawDirection_) {
+	colour = y;
+      }
+      else {
+	colour = x;
+      }
+      if (useAcceleration_) {
+	SDL_RenderCopy(renderer_, acceleratedColour_[colour], &sourceRect, &destinationRect);
+      } else {
+          SDL_BlitSurface(colours_[colour], &sourceRect, windowSurface,
+                          &destinationRect);
+      }
+      if (!useGlobalRefresh_){
+	if (useAcceleration_) {
+	  SDL_RenderPresent(renderer_);
+	}
 	else {
-          colour = x;
-        }
-
-        SDL_BlitSurface(colours_[colour], &sourceRect, windowSurface, &destinationRect);
-	//SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+	  SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+	}
+      }
     }
   }
-  destinationRect.x = 0;
-  destinationRect.y = 0;
-  destinationRect.w = 16*rectWidth_;
-  destinationRect.h = 16*rectHeight_;
 
-  SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+  if (useGlobalRefresh_) {
+    if (useAcceleration_) {
+      SDL_RenderPresent(renderer_);
+    } else {
+      destinationRect.x = 0;
+      destinationRect.y = 0;
+      destinationRect.w = 16 * rectWidth_;
+      destinationRect.h = 16 * rectHeight_;
+      SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+    }
+  }
   needsARedraw_ = 0;
 }
 
