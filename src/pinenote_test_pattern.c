@@ -19,6 +19,7 @@ static uint8_t drawDirection_ = 0;
 
 static uint8_t useAcceleration_ = 1;
 static uint8_t useGlobalRefresh_ = 0;
+static uint8_t performTiming_ = 0;
 
 static int rectWidth_ = 42;
 static int rectHeight_ = 42;
@@ -157,12 +158,97 @@ static void drawScreen(void) {
   needsARedraw_ = 0;
 }
 
-int main(int argc, char **args) {
-  initSDL();
-  while (keepRunning_) {
-    checkInput();
-    if (needsARedraw_) {
-      drawScreen();
+static void showHelp(void) {
+  printf("Usage: pinenote_test_pattern [option]\n\n");
+  printf("  -h\tShow this help\n");
+  printf("  -a\tDisable HW accelerated rendering\n");
+  printf("  -d=X\tDraw X squares per update call, valid values 1,256\n");
+  printf("  -t\tShow timing statistics\n");
+  printf("\n");
+  printf("In the 'application' press the upper left corner to exit, press anywhere else to draw the 'next' test pattern\n\n");
+}
+
+static uint8_t readArguments(int argCount, const char **arguments) {
+  uint8_t run = 1;
+  uint8_t help = 0;
+  for (int i = 0; i < argCount; i++) {
+    const char *argument = arguments[i];
+    if      (strcmp (argument, "-h") == 0) {
+      help = 1;
+    }
+    else if (strcmp (argument, "-a") == 0) {
+      useAcceleration_ = 0;
+    }
+    else if (strcmp(argument, "-t") == 0) {
+      performTiming_ = 1;
+    }
+    else if (strncmp(argument, "-d=", 3) == 0) {
+      uint32_t number = 0;
+      const char *character = argument+3;
+      while (*character >= '0' && *character <= '9') {
+	number = number*10 + (*character - '0');
+	character++;
+      }
+      if (number == 1) {
+        useGlobalRefresh_ = 0;
+      }
+      else if (number == 256) {
+        useGlobalRefresh_ = 1;
+      }
+      else {
+        help = 1;
+      }
+    }
+  }
+
+  if (help) {
+    showHelp();
+    run = 0;
+  }
+
+  return run;
+}
+
+static void showSettingsUsed(void){
+  if (useAcceleration_) {
+    printf("Drawing using acceleration\n");
+  }
+  else {
+    printf("Drawing without acceleration\n");
+  }
+
+  if (useGlobalRefresh_) {
+    printf("Performing the update of the screen as a single update\n");
+  }
+  else {
+    printf("Performing the update of the screen as 256 small updates\n");
+  }
+
+  if (performTiming_) {
+    printf("The time for each redraw will be written\n");
+  }
+  else {
+    printf("No timing statistics will be provided\n");
+  }
+
+  printf("\n");
+}
+
+int main(int argc, const char **args) {
+  if (readArguments(argc, args)) {
+    showSettingsUsed();
+    initSDL();
+    needsARedraw_ = 1;
+    while (keepRunning_) {
+      if (needsARedraw_) {
+	Uint64 start = SDL_GetTicks64();
+        drawScreen();
+	Uint64 end = SDL_GetTicks64();
+        if (performTiming_) {
+	  printf("Draw took %lums\n", end-start);
+        }
+      }
+      checkInput();
     }
   }
   return 0;
