@@ -20,6 +20,7 @@ static uint8_t drawDirection_ = 0;
 static uint8_t useAcceleration_ = 1;
 static uint8_t useGlobalRefresh_ = 0;
 static uint8_t performTiming_ = 0;
+static Uint32  updateDelay_ = 0;
 
 static int rectWidth_ = 42;
 static int rectHeight_ = 42;
@@ -128,7 +129,11 @@ static void drawScreen(void) {
 	colour = x;
       }
       if (useAcceleration_) {
-	SDL_RenderCopy(renderer_, acceleratedColour_[colour], &sourceRect, &destinationRect);
+        if (SDL_RenderCopy(renderer_, acceleratedColour_[colour], 0,
+                           &destinationRect) != 0) {
+          printf("SDL error '%s' while accelerated rendering @ tile %u,%u\n",
+                 SDL_GetError(), x, y);
+        }
       } else {
           SDL_BlitSurface(colours_[colour], &sourceRect, windowSurface,
                           &destinationRect);
@@ -136,10 +141,14 @@ static void drawScreen(void) {
       if (!useGlobalRefresh_){
 	if (useAcceleration_) {
 	  SDL_RenderPresent(renderer_);
+	  //SDL_RenderClear(renderer_);
 	}
 	else {
 	  SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
 	}
+        if (updateDelay_ != 0) {
+          SDL_Delay(updateDelay_);
+        }
       }
     }
   }
@@ -147,12 +156,16 @@ static void drawScreen(void) {
   if (useGlobalRefresh_) {
     if (useAcceleration_) {
       SDL_RenderPresent(renderer_);
+      //SDL_RenderClear(renderer_);
     } else {
       destinationRect.x = 0;
       destinationRect.y = 0;
       destinationRect.w = 16 * rectWidth_;
       destinationRect.h = 16 * rectHeight_;
       SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+    }
+    if (updateDelay_ != 0) {
+      SDL_Delay(updateDelay_);
     }
   }
   needsARedraw_ = 0;
@@ -163,6 +176,7 @@ static void showHelp(void) {
   printf("  -h\tShow this help\n");
   printf("  -a\tDisable HW accelerated rendering\n");
   printf("  -d=X\tDraw X squares per update call, valid values 1,256\n");
+  printf("  -p=X\tInsert a pause of X ms after each update call\n");
   printf("  -t\tShow timing statistics\n");
   printf("\n");
   printf("In the 'application' press the upper left corner to exit, press anywhere else to draw the 'next' test pattern\n\n");
@@ -173,16 +187,26 @@ static uint8_t readArguments(int argCount, const char **arguments) {
   uint8_t help = 0;
   for (int i = 0; i < argCount; i++) {
     const char *argument = arguments[i];
-    if      (strcmp (argument, "-h") == 0) {
+    if (i == 0) {
+    }    // skip name
+    else if (strcmp(argument, "-h") == 0) {
       help = 1;
     }
-    else if (strcmp (argument, "-a") == 0) {
+    else if (strcmp(argument, "-a") == 0) {
       useAcceleration_ = 0;
     }
     else if (strcmp(argument, "-t") == 0) {
       performTiming_ = 1;
     }
-    else if (strncmp(argument, "-d=", 3) == 0) {
+    else if (strncmp(argument, "-p=", 3) == 0) {
+      uint32_t number = 0;
+      const char *character = argument+3;
+      while (*character >= '0' && *character <= '9') {
+        number = number * 10 + (*character - '0');
+        character++;
+      }
+      updateDelay_ = number;
+    } else if (strncmp(argument, "-d=", 3) == 0) {
       uint32_t number = 0;
       const char *character = argument+3;
       while (*character >= '0' && *character <= '9') {
@@ -195,9 +219,10 @@ static uint8_t readArguments(int argCount, const char **arguments) {
       else if (number == 256) {
         useGlobalRefresh_ = 1;
       }
-      else {
-        help = 1;
-      }
+    }
+    else {
+      help = 1;
+      printf("??? %s %u\n", argument, i);
     }
   }
 
@@ -222,6 +247,13 @@ static void showSettingsUsed(void){
   }
   else {
     printf("Performing the update of the screen as 256 small updates\n");
+  }
+
+  if (updateDelay_ == 0) {
+    printf("The updates will be performed as fast as possible\n");
+  }
+  else {
+    printf("After each update there will be inserted a %ums pause\n", updateDelay_);
   }
 
   if (performTiming_) {
