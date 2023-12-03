@@ -27,6 +27,7 @@ static int rectHeight_ = 42;
 
 SDL_Surface *colours_[16];
 SDL_Texture *acceleratedColour_[16];
+SDL_Texture *offScreenBuffer_;
 
 void initSDL(void) {
   int rendererFlags, windowFlags;
@@ -53,6 +54,13 @@ void initSDL(void) {
 
     if (renderer_ == 0) {
       printf("Failed to create renderer: %s\n", SDL_GetError());
+      exit(1);
+    }
+
+    offScreenBuffer_ =  SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 16*rectWidth_, 16*rectHeight_);
+    if (offScreenBuffer_ == 0) {
+      printf("Failed to create off screen rendering texture: %s\n",
+             SDL_GetError());
       exit(1);
     }
   }
@@ -117,6 +125,10 @@ static void drawScreen(void) {
   destinationRect.w = rectWidth_;
   destinationRect.h = rectHeight_;
   SDL_Surface *windowSurface = SDL_GetWindowSurface(window_);
+  if (useAcceleration_) {
+    SDL_SetRenderTarget(renderer_, offScreenBuffer_);
+  }
+
   for (int x=0; x<16; x++){
     for (int y = 0; y < 16; y++) {
       destinationRect.x = x * rectWidth_;
@@ -140,7 +152,15 @@ static void drawScreen(void) {
       }
       if (!useGlobalRefresh_){
 	if (useAcceleration_) {
+	  SDL_Rect all;
+	  all.x = 0;
+	  all.y = 0;
+	  all.w = 16*rectWidth_;
+	  all.h = 16*rectHeight_;
+	  SDL_SetRenderTarget(renderer_, NULL);
+	  SDL_RenderCopy(renderer_, offScreenBuffer_, NULL, &all);
 	  SDL_RenderPresent(renderer_);
+	  SDL_SetRenderTarget(renderer_, offScreenBuffer_);
 	  //SDL_RenderClear(renderer_);
 	}
 	else {
@@ -153,20 +173,26 @@ static void drawScreen(void) {
     }
   }
 
-  if (useGlobalRefresh_) {
-    if (useAcceleration_) {
-      SDL_RenderPresent(renderer_);
-      //SDL_RenderClear(renderer_);
-    } else {
-      destinationRect.x = 0;
-      destinationRect.y = 0;
-      destinationRect.w = 16 * rectWidth_;
-      destinationRect.h = 16 * rectHeight_;
-      SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
-    }
-    if (updateDelay_ != 0) {
-      SDL_Delay(updateDelay_);
-    }
+  if (useAcceleration_) {
+    SDL_Rect all;
+    all.x = 0;
+    all.y = 0;
+    all.w = 16*rectWidth_;
+    all.h = 16*rectHeight_;
+    SDL_SetRenderTarget(renderer_, NULL);
+    SDL_RenderCopy(renderer_, offScreenBuffer_, NULL, &all);
+    SDL_RenderPresent(renderer_);
+  }
+  else if (useGlobalRefresh_) {
+    destinationRect.x = 0;
+    destinationRect.y = 0;
+    destinationRect.w = 16 * rectWidth_;
+    destinationRect.h = 16 * rectHeight_;
+    SDL_UpdateWindowSurfaceRects(window_, &destinationRect, 1);
+  }
+  
+  if (updateDelay_ != 0) {
+    SDL_Delay(updateDelay_);
   }
   needsARedraw_ = 0;
 }
@@ -218,11 +244,12 @@ static uint8_t readArguments(int argCount, const char **arguments) {
       }
       else if (number == 256) {
         useGlobalRefresh_ = 1;
+      } else {
+        help = 1;
       }
     }
     else {
       help = 1;
-      printf("??? %s %u\n", argument, i);
     }
   }
 
@@ -246,7 +273,7 @@ static void showSettingsUsed(void){
     printf("Performing the update of the screen as a single update\n");
   }
   else {
-    printf("Performing the update of the screen as 256 small updates\n");
+    printf("Performing the update of the screen as 256 updates\n");
   }
 
   if (updateDelay_ == 0) {

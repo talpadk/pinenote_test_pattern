@@ -24,3 +24,15 @@ Build and test it by running it:
 #+begin_src sh
   ./buildpp.pl pinenote_test_pattern --test ""
 #+end_src
+
+#+begin_example
+Usage: pinenote_test_pattern [option]
+
+  -h	Show this help
+  -a	Disable HW accelerated rendering
+  -d=X	Draw X squares per update call, valid values 1,256
+  -p=X	Insert a pause of X ms after each update call
+  -t	Show timing statistics
+
+In the 'application' press the upper left corner to exit, press anywhere else to draw the 'next' test pattern
+#+end_example
